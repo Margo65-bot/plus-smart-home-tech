@@ -1,4 +1,4 @@
-package ru.yandex.practicum.serialize.exception;
+package ru.yandex.practicum.exception;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
