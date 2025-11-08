@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
-import service.EventsService;
+import service.EventService;
 
 @RestController
 @RequestMapping("/events")
@@ -20,17 +20,19 @@ import service.EventsService;
 @RequiredArgsConstructor
 @Validated
 public class EventsController {
-    private final EventsService eventsService;
+    private final EventService eventService;
 
     @PostMapping("/sensors")
     @ResponseStatus(HttpStatus.OK)
-    public void collectSensorEvent(@Valid @RequestBody SensorEvent event) {
-        log.info("collectSensorEvent event.id={}", event.getId());
+    public void handleSensorEvent(@Valid @RequestBody SensorEvent event) {
+        log.info("handleSensorEvent event.id={}, hub id={}, event.type={}", event.getId(), event.getHubId(), event.getType());
+        eventService.handleSensorEvent(event);
     }
 
     @PostMapping("/hubs")
     @ResponseStatus(HttpStatus.OK)
-    public void collectHubEvent(@Valid @RequestBody HubEvent event) {
-        log.info("collectHubEvent event.type={} from hub id={}", event.getType(), event.getHubId());
+    public void handleHubEvent(@Valid @RequestBody HubEvent event) {
+        log.info("handleHubEvent hub id={}, event.type={}", event.getHubId(), event.getType());
+        eventService.handleHubEvent(event);
     }
 }

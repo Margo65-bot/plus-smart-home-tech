@@ -15,7 +15,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class EventsServiceImpl implements EventsService {
+public class EventsServiceImpl implements EventService {
     private final Producer<Void, SpecificRecordBase> producer;
 
     @Value("${smart-home-tech.kafka.hub-event-topic}")

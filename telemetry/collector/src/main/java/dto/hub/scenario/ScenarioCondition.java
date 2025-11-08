@@ -3,8 +3,10 @@ package dto.hub.scenario;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
+import lombok.ToString;
 
 @Getter
+@ToString
 public class ScenarioCondition {
     @NotBlank(message = "Идентификатор датчика, связанного с условием не может быть пустым")
     private String sensorId;
