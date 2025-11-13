@@ -51,8 +51,4 @@ public abstract class BaseSensorEventHandler<T extends SpecificRecordBase> imple
     public abstract T toAvro(SensorEvent event);
 
     public abstract T toAvro(SensorEventProto event);
-
-    protected static <E extends Enum<E>, F extends Enum<F>> F handleEnum(E first, Class<F> secondClass) {
-        return Enum.valueOf(secondClass, first.name());
-    }
 }

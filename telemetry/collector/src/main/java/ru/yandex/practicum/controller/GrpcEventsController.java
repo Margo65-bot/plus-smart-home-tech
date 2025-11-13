@@ -20,6 +20,7 @@ public class GrpcEventsController extends CollectorControllerGrpc.CollectorContr
 
     @Override
     public void collectSensorEvent(SensorEventProto request, StreamObserver<Empty> responseObserver) {
+        log.info("collectSensorEvent event.id={}, hub id={}, event.type={}", request.getId(), request.getHubId(), request.getPayloadCase());
         try {
             eventService.handleSensorEvent(request);
             responseObserver.onNext(Empty.getDefaultInstance());
@@ -35,6 +36,7 @@ public class GrpcEventsController extends CollectorControllerGrpc.CollectorContr
 
     @Override
     public void collectHubEvent(HubEventProto request, StreamObserver<Empty> responseObserver) {
+        log.info("collectHubEvent hub id={}, event.type={}", request.getHubId(), request.getPayloadCase());
         try {
             eventService.handleHubEvent(request);
             responseObserver.onNext(Empty.getDefaultInstance());
