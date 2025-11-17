@@ -14,7 +14,6 @@ import java.util.Properties;
 
 @Configuration
 public class KafkaProducerConfig {
-
     @Bean
     public Producer<Void, SpecificRecordBase> kafkaProducer(
             @Value("${smart-home-tech.kafka.bootstrap-servers}") String kafkaBootstrapServers

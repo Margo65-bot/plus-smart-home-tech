@@ -48,26 +48,20 @@ public class AggregationStarter {
 
     @PreDestroy
     public void shutdown() {
-        log.info("Инициировано корректное завершение работы...");
         running = false;
-
         sensorConsumer.wakeup();
-
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-
         closeResources();
     }
 
     private void closeResources() {
         try {
             producer.flush();
-
             sensorConsumer.commitSync();
-
         } catch (Exception e) {
             log.warn("Ошибка при завершении работы ресурсов", e);
         } finally {
