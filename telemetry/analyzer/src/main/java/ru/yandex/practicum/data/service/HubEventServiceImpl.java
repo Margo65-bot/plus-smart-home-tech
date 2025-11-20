@@ -76,13 +76,12 @@ public class HubEventServiceImpl implements HubEventService {
         if (payload == null || payload.getName() == null || payload.getConditions() == null || payload.getActions() == null) {
             return;
         }
-
-        Scenario scenario = scenarioRepository.findByHubIdAndName(payload.getName(), hubId).orElseGet(() -> {
-            Scenario s = new Scenario();
-            s.setHubId(hubId);
-            s.setName(payload.getName());
-            return s;
-        });
+        
+        Scenario scenario = Scenario.builder()
+                .hubId(hubId)
+                .name(payload.getName())
+                .build();
+        scenarioRepository.save(scenario);
 
         List<Condition> conditions = payload.getConditions().stream()
                 .map(c -> {
@@ -169,9 +168,6 @@ public class HubEventServiceImpl implements HubEventService {
             scenarioActions.add(scenarioAction);
         }
         scenarioActionsRepository.saveAll(scenarioActions);
-
-        scenarioRepository.save(scenario);
-        log.debug("Добавлен сценарий {} в хаб с id {}", scenario, hubId);
     }
 
     private void removeScenario(ScenarioRemovedEventAvro payload, String hubId) {

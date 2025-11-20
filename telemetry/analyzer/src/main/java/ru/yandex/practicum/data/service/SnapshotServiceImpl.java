@@ -1,9 +1,11 @@
 package ru.yandex.practicum.data.service;
 
 import com.google.protobuf.Timestamp;
+import io.grpc.StatusRuntimeException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.client.inject.GrpcClient;
+import org.apache.avro.specific.SpecificRecordBase;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.data.entity.ScenarioAction;
@@ -19,6 +21,7 @@ import ru.yandex.practicum.kafka.telemetry.event.SensorsSnapshotAvro;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 @Slf4j
@@ -45,14 +48,24 @@ public class SnapshotServiceImpl implements SnapshotService {
                                 .setTimestamp(buildTimestamp())
                                 .build()))
                 .toList();
-        request.forEach(a -> grpcClient.handleDeviceAction(a));
+        request.stream()
+                .filter(Objects::nonNull)
+                .forEach(req -> {
+                    try {
+                        com.google.protobuf.Empty response = grpcClient.handleDeviceAction(req);
+                    } catch (StatusRuntimeException e) {
+                        log.error("gRPC ошибка: {} - {}", req.getScenarioName(), e.getStatus());
+                    } catch (Exception e) {
+                        log.error("Ошибка отправки: {} - {}", req.getScenarioName(), e.getMessage());
+                    }
+                });
     }
 
     private boolean isConditionMet(ScenarioCondition condition, Map<String, SensorStateAvro> sensorsState) {
         SensorStateAvro sensorState = sensorsState.get(condition.getSensor().getId());
         return sensorState != null &&
                 sensorState.getData() != null &&
-                ConditionMatcher.matches(condition.getCondition(), sensorState);
+                ConditionMatcher.matches(condition.getCondition(), (SpecificRecordBase) sensorState.getData());
     }
 
     private DeviceActionProto buildActionProto(ScenarioAction action) {
