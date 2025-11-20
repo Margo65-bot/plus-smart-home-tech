@@ -59,6 +59,11 @@ public class SnapshotServiceImpl implements SnapshotService {
                     .setTimestamp(sensorEventAvro.getTimestamp())
                     .setSensorsState(new HashMap<>())
                     .build();
+        } else {
+            snapshot = SensorsSnapshotAvro.newBuilder(snapshot)
+                    .setHubId(sensorEventAvro.getHubId())
+                    .setTimestamp(sensorEventAvro.getTimestamp())
+                    .build();
         }
 
         snapshot.getSensorsState().put(sensorEventAvro.getId(), newSensorState);
