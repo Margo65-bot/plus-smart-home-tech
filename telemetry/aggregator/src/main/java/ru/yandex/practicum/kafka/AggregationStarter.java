@@ -25,7 +25,7 @@ public class AggregationStarter {
 
     private volatile boolean running = true;
 
-    public void startAggregation() {
+    public void start() {
         try {
             while (running) {
                 ConsumerRecords<Void, SensorEventAvro> records = sensorConsumer.poll(Duration.ofMillis(1000));

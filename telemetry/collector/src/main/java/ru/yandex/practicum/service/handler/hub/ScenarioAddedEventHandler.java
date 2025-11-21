@@ -3,11 +3,6 @@ package ru.yandex.practicum.service.handler.hub;
 import org.apache.avro.specific.SpecificRecordBase;
 import org.apache.kafka.clients.producer.Producer;
 import org.springframework.stereotype.Component;
-import ru.yandex.practicum.dto.hub.HubEvent;
-import ru.yandex.practicum.dto.hub.HubEventType;
-import ru.yandex.practicum.dto.hub.device.DeviceAction;
-import ru.yandex.practicum.dto.hub.scenario.ScenarioAddedEvent;
-import ru.yandex.practicum.dto.hub.scenario.ScenarioCondition;
 import ru.yandex.practicum.grpc.telemetry.event.DeviceActionProto;
 import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
 import ru.yandex.practicum.grpc.telemetry.event.ScenarioAddedEventProto;
@@ -26,15 +21,6 @@ public class ScenarioAddedEventHandler extends BaseHubEventHandler<ScenarioAdded
     }
 
     @Override
-    public ScenarioAddedEventAvro toAvro(HubEvent event) {
-        return ScenarioAddedEventAvro.newBuilder()
-                .setName(((ScenarioAddedEvent) event).getName())
-                .setConditions(((ScenarioAddedEvent) event).getConditions().stream().map(ScenarioAddedEventHandler::toAvro).toList())
-                .setActions(((ScenarioAddedEvent) event).getActions().stream().map(ScenarioAddedEventHandler::toAvro).toList())
-                .build();
-    }
-
-    @Override
     public ScenarioAddedEventAvro toAvro(HubEventProto event) {
         ScenarioAddedEventProto scenarioAddedEvent =  event.getScenarioAdded();
         return ScenarioAddedEventAvro.newBuilder()
@@ -45,30 +31,8 @@ public class ScenarioAddedEventHandler extends BaseHubEventHandler<ScenarioAdded
     }
 
     @Override
-    public HubEventType getMessageType() {
-        return HubEventType.SCENARIO_ADDED;
-    }
-
-    @Override
     public HubEventProto.PayloadCase getProtoMessageType() {
         return HubEventProto.PayloadCase.SCENARIO_ADDED;
-    }
-
-    private static ScenarioConditionAvro toAvro(ScenarioCondition condition) {
-        return ScenarioConditionAvro.newBuilder()
-                .setSensorId(condition.getSensorId())
-                .setType(handleEnum(condition.getType(), ConditionTypeAvro.class))
-                .setOperation(handleEnum(condition.getOperation(), ConditionOperationAvro.class))
-                .setValue(condition.getValue())
-                .build();
-    }
-
-    private static DeviceActionAvro toAvro(DeviceAction action) {
-        return DeviceActionAvro.newBuilder()
-                .setSensorId(action.getSensorId())
-                .setType(handleEnum(action.getType(), ActionTypeAvro.class))
-                .setValue(action.getValue())
-                .build();
     }
 
     private static ScenarioConditionAvro toAvro(ScenarioConditionProto condition) {

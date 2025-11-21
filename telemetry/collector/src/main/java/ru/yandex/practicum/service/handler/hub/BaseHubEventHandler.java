@@ -5,7 +5,6 @@ import org.apache.avro.specific.SpecificRecordBase;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.annotation.Value;
-import ru.yandex.practicum.dto.hub.HubEvent;
 import ru.yandex.practicum.grpc.telemetry.event.HubEventProto;
 import ru.yandex.practicum.kafka.telemetry.event.HubEventAvro;
 
@@ -17,21 +16,6 @@ public abstract class BaseHubEventHandler<T extends SpecificRecordBase> implemen
 
     @Value("${smart-home-tech.kafka.hub-event-topic}")
     private String hubEventTopicName;
-
-    @Override
-    public void handle(HubEvent event) {
-        if (!event.getType().equals(this.getMessageType())) {
-            throw new IllegalArgumentException("Неподдерживаемый тип Hub Event: " + event.getClass().getName());
-        }
-        HubEventAvro avroHubEvent = HubEventAvro.newBuilder()
-                .setHubId(event.getHubId())
-                .setTimestamp(event.getTimestamp())
-                .setPayload(this.toAvro(event))
-                .build();
-        ProducerRecord<Void, SpecificRecordBase> record = new ProducerRecord<>(hubEventTopicName, avroHubEvent);
-        producer.send(record);
-
-    }
 
     @Override
     public void handle(HubEventProto event) {
@@ -46,8 +30,6 @@ public abstract class BaseHubEventHandler<T extends SpecificRecordBase> implemen
         ProducerRecord<Void, SpecificRecordBase> record = new ProducerRecord<>(hubEventTopicName, avroHubEvent);
         producer.send(record);
     }
-
-    public abstract T toAvro(HubEvent event);
 
     public abstract T toAvro(HubEventProto event);
 
