@@ -1,0 +1,18 @@
+smart-home-tech:
+  kafka:
+    bootstrap-servers: localhost:9092
+    hub-event-topic: telemetry.hubs.v1
+    sensor-event-topic: telemetry.sensors.v1
+
+logging:
+  level:
+    org:
+      springframework:
+        web: INFO
+        validation: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics
