@@ -39,8 +39,8 @@ public class ProductServiceImpl implements ProductService {
     public ProductDto update(ProductDto productDto) {
         Product product = getProductOrThrow(productDto.getProductId());
 
-        if (productDto.getProductName() != null && !productDto.getProductName().equals(product.getName())) {
-            product.setName(productDto.getProductName());
+        if (productDto.getProductName() != null && !productDto.getProductName().equals(product.getProductName())) {
+            product.setProductName(productDto.getProductName());
         }
 
         if (productDto.getDescription() != null && !productDto.getDescription().equals(product.getDescription())) {
@@ -55,12 +55,12 @@ public class ProductServiceImpl implements ProductService {
             product.setQuantityState(productDto.getQuantityState());
         }
 
-        if (productDto.getProductState() != null && !productDto.getProductState().equals(product.getState())) {
-            product.setState(productDto.getProductState());
+        if (productDto.getProductState() != null && !productDto.getProductState().equals(product.getProductState())) {
+            product.setProductState(productDto.getProductState());
         }
 
-        if (productDto.getProductCategory() != null && !productDto.getProductCategory().equals(product.getCategory())) {
-            product.setCategory(productDto.getProductCategory());
+        if (productDto.getProductCategory() != null && !productDto.getProductCategory().equals(product.getProductCategory())) {
+            product.setProductCategory(productDto.getProductCategory());
         }
 
         if (productDto.getPrice() != null && !productDto.getPrice().equals(product.getPrice())) {
@@ -100,8 +100,12 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = false)
     public String remove(String productId) {
-        Product product = getProductOrThrow(productId);
-        product.setState(ProductState.DEACTIVATE);
+        String id = productId.replaceAll("\"", "");
+        Product product = getProductOrThrow(id);
+        if (product.getProductState() == ProductState.DEACTIVATE) {
+            return "false";
+        }
+        product.setProductState(ProductState.DEACTIVATE);
         return "true";
     }
 
@@ -126,6 +130,7 @@ public class ProductServiceImpl implements ProductService {
         return sort;
     }
 
+    @Transactional(readOnly = true)
     private Product getProductOrThrow(String productId) {
         return productRepository.findById(productId).orElseThrow(
                 () -> new ProductNotFoundException("Товар не найден, id = " + productId));

@@ -118,10 +118,11 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
             throw new NotAuthorizedUserException("Имя пользователя не должно быть пустым");
         }
 
-        ShoppingCart shoppingCart = shoppingCartRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        String.format("Нет корзины товаров пользователя с id = %s", username)
-                ));
+        ShoppingCart shoppingCart = shoppingCartRepository.findByUsernameAndIsActive(username, true)
+                        .orElseThrow(() -> new NoActiveShoppingCartException(
+                                "Нет активной корзины товаров пользователя с id = " + username
+                        ));
+
         shoppingCart.setIsActive(false);
         return "OK";
     }
@@ -131,17 +132,16 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
     public ShoppingCartDto getByUsername(String username) {
         checkUsername(username);
 
-        List<ShoppingCart> activeCarts = shoppingCartRepository.findByUsernameAndIsActiveOrderByIdDesc(username, true);
-        ShoppingCart cart;
-        if (activeCarts.isEmpty()) {
-            cart = new ShoppingCart();
-            cart.setUsername(username);
-            cart.setIsActive(true);
-            shoppingCartRepository.save(cart);
-        } else {
-            cart = activeCarts.getFirst();
-        }
-        return ShoppingCartMapper.mapToDto(cart);
+        return shoppingCartRepository
+                .findByUsernameAndIsActiveOrderByIdDesc(username, true)
+                .stream()
+                .findFirst()
+                .map(ShoppingCartMapper::mapToDto)
+                .orElseThrow(() ->
+                        new NoActiveShoppingCartException(
+                                "Не найдена активная корзина пользователя " + username
+                        )
+                );
     }
 
     private void validateWarehouseAvailability(ShoppingCartDto checkCartDto) {
@@ -163,7 +163,7 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
             newCart.setUsername(username);
             newCart.setIsActive(true);
             newCart.setProducts(new HashMap<>());
-            return newCart;
+            return shoppingCartRepository.save(newCart);
         }
 
         return carts.getFirst();

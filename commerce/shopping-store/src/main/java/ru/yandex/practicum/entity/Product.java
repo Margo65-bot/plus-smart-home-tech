@@ -27,10 +27,10 @@ public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false, length = 50)
-    private String id;
+    private String productId;;
 
     @Column(name = "name", nullable = false, length = 50)
-    private String name;
+    private String productName;
 
     @Column(name = "description", nullable = true, length = 255)
     private String description;
@@ -44,11 +44,11 @@ public class Product {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "state", nullable = false, length = 15)
-    private ProductState state;
+    private ProductState productState;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "category", nullable = false, length = 15)
-    private ProductCategory category;
+    private ProductCategory productCategory;
 
     @Column(name = "price", nullable = false)
     private BigDecimal price;
