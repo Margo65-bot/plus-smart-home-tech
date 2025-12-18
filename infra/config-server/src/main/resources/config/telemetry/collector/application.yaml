@@ -6,10 +6,8 @@ smart-home-tech:
 
 logging:
   level:
-    org:
-      springframework:
-        web: INFO
-        validation: INFO
+    org.springframework.web: INFO
+    org.springframework.validation: INFO
 
 management:
   endpoints:

@@ -1,0 +1,25 @@
+[33m255327e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32m7-spring-cloud-microservices[m[33m, [m[1;31morigin/7-spring-cloud-microservices[m[33m)[m Внести правки
+[33md42810b[m Внести правки
+[33m15721a5[m Разработать Commerce: Cart, Warehouse, Store
+[33m8ced8fb[m Внести правки
+[33mc9deeab[m Добавить eureka
+[33m938b6e7[m 5-config-server
+[33m3e47944[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m Merge pull request #5 from Margo65-bot/develop
+[33m4c299f6[m[33m ([m[1;31morigin/develop[m[33m)[m Merge pull request #6 from Margo65-bot/4-analyzer
+[33m3299f0c[m[33m ([m[1;31morigin/4-analyzer[m[33m, [m[1;32m4-analyzer[m[33m)[m Внести правки после ревью
+[33m76dab2d[m Внести правки после ревью
+[33mcdcc5a2[m Merge pull request #4 from Margo65-bot/4-analyzer
+[33m565ea6e[m Внести правки
+[33mc88e297[m Разработать Analyzer
+[33m71077a2[m Merge pull request #3 from Margo65-bot/3-aggregator
+[33m1a1a58a[m[33m ([m[1;31morigin/3-aggregator[m[33m, [m[1;32m3-aggregator[m[33m)[m Внести правки
+[33m9caada1[m Рзработать Aggregator
+[33mef9e393[m Merge pull request #2 from Margo65-bot/2-collector-grpc
+[33mfd71d0c[m[33m ([m[1;31morigin/2-collector-grpc[m[33m, [m[1;32m2-collector-grpc[m[33m)[m Внести правки
+[33m7d0b8c0[m Настроить gRPC API
+[33me08d6f9[m Merge pull request #1 from Margo65-bot/1-collector-json
+[33m25f365b[m[33m ([m[1;32mdevelop[m[33m, [m[1;32m1-collector-json[m[33m)[m Внести правки
+[33m3624a09[m Внести правки
+[33m2c743a6[m Внести правки
+[33mfe488c8[m Разработать Collector + json
+[33m95375e2[m Initial commit
