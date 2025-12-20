@@ -126,8 +126,8 @@ public class ProductServiceImpl implements ProductService {
         String[] parts = sortString.split(",");
         for (int i = 0; i < parts.length - 1; i += 2) {
             SortDto dto = new SortDto(
-                    parts[i].trim(),
-                    parts[i + 1].trim()
+                    parts[i + 1].trim(),
+                    parts[i].trim()
             );
             sort.add(dto);
         }
