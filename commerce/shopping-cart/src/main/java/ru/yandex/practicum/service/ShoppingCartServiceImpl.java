@@ -37,14 +37,15 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
         ShoppingCart cart = getOrCreateCart(username);
         String cartId = cart.getId();
 
-        ShoppingCartDto checkCartDto = new ShoppingCartDto();
-        checkCartDto.setShoppingCartId(cartId != null ? cartId : "new-cart-check");
-
         Map<String, Long> productsForCheck = new HashMap<>(cart.getProducts());
         addProductMap.forEach((key, value) ->
                 productsForCheck.merge(key, value, Long::sum)
         );
-        checkCartDto.setProducts(productsForCheck);
+
+        ShoppingCartDto checkCartDto = new ShoppingCartDto(
+                cartId != null ? cartId : "new-cart-check",
+                productsForCheck
+        );
 
         validateWarehouseAvailability(checkCartDto);
 
@@ -87,22 +88,23 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
 
         ShoppingCart cart = getActiveCart(username);
 
-        if (!cart.getProducts().containsKey(request.getProductId())) {
+        if (!cart.getProducts().containsKey(request.productId())) {
             throw new NoProductsInShoppingCartException(
-                    "Товар не найден в корзине: " + request.getProductId()
+                    "Товар не найден в корзине: " + request.productId()
             );
         }
 
-        ShoppingCartDto checkCartDto = new ShoppingCartDto();
-        checkCartDto.setShoppingCartId("quantity-check");
-        checkCartDto.setProducts(Map.of(request.getProductId(), request.getNewQuantity()));
+        ShoppingCartDto checkCartDto = new ShoppingCartDto(
+                "quantity-check",
+                Map.of(request.productId(), request.newQuantity())
+        );
 
         validateWarehouseAvailability(checkCartDto);
 
-        cart.getProducts().put(request.getProductId(), request.getNewQuantity());
+        cart.getProducts().put(request.productId(), request.newQuantity());
 
-        if (request.getNewQuantity() == 0) {
-            cart.getProducts().remove(request.getProductId());
+        if (request.newQuantity() == 0) {
+            cart.getProducts().remove(request.productId());
             if (cart.getProducts().isEmpty()) {
                 cart.setIsActive(false);
             }

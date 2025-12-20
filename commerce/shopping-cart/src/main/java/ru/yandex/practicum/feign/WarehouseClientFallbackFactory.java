@@ -11,6 +11,7 @@ import ru.yandex.practicum.dto.warehouse.AddProductToWarehouseRequest;
 import ru.yandex.practicum.dto.warehouse.AddressDto;
 import ru.yandex.practicum.dto.warehouse.BookedProductsDto;
 import ru.yandex.practicum.dto.warehouse.NewProductInWarehouseRequest;
+import ru.yandex.practicum.exception.warehouse.ServiceUnavailableException;
 
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
@@ -24,46 +25,47 @@ public class WarehouseClientFallbackFactory implements FallbackFactory<Warehouse
 
             @Override
             public void createProduct(NewProductInWarehouseRequest newProductInWarehouseRequest) {
-                throw new UnsupportedOperationException("Метод createProduct() не поддерживается");
+                throw new ServiceUnavailableException("Сервис Warehouse недоступен: createProduct");
             }
 
             @Override
             public BookedProductsDto checkShoppingCart(ShoppingCartDto shoppingCartDto) {
+                String causeName = cause.getClass().getSimpleName();
                 if (cause instanceof FeignException.UnprocessableEntity e) {
                     throw e;
                 } else if (cause instanceof CallNotPermittedException e) {
                     log.warn("[{}] Circuit Breaker в состоянии OPEN для сервиса Warehouse",
-                            cause.getClass().getSimpleName());
+                            causeName);
                 } else if (cause instanceof FeignException.FeignServerException e) {
                     log.warn("[{}] Ошибка сервера (5xx) в сервисе Warehouse",
-                            cause.getClass().getSimpleName());
+                            causeName);
                 } else if (cause instanceof FeignException.FeignClientException e) {
                     log.warn("[{}] Ошибка клиента (4xx) в сервисе Warehouse",
-                            cause.getClass().getSimpleName());
+                            causeName);
                 } else if (cause instanceof RetryableException e) {
                     log.warn("[{}] Таймаут при вызове сервиса Warehouse",
-                            cause.getClass().getSimpleName());
+                            causeName);
                 } else if (cause instanceof TimeoutException e) {
                     log.warn("[{}] Таймаут выполнения при вызове сервиса Warehouse",
-                            cause.getClass().getSimpleName());
+                            causeName);
                 } else if (cause instanceof IOException e) {
                     log.warn("[{}] Сетевая ошибка при вызове сервиса Warehouse",
-                            cause.getClass().getSimpleName());
+                            causeName);
                 } else {
                     log.warn("[{}] Неизвестная ошибка при вызове сервиса Warehouse",
-                            cause.getClass().getSimpleName());
+                            causeName);
                 }
-                return null;
+                throw new ServiceUnavailableException("Сервис Warehouse недоступен: checkShoppingCart");
             }
 
             @Override
             public void changeQuantity(AddProductToWarehouseRequest addProductToWarehouseRequest) {
-                throw new UnsupportedOperationException("Метод changeQuantity() не поддерживается");
+                throw new ServiceUnavailableException("Сервис Warehouse недоступен: changeQuantity");
             }
 
             @Override
             public AddressDto getAddress() {
-                throw new UnsupportedOperationException("Метод getAddress() не поддерживается");
+                throw new ServiceUnavailableException("Сервис Warehouse недоступен: getAddress");
             }
         };
     }

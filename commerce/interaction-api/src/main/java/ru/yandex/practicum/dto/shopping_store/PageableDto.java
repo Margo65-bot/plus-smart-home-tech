@@ -1,12 +1,8 @@
 package ru.yandex.practicum.dto.shopping_store;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
+public record PageableDto(
+        Integer page,
+        Integer size,
+        String sort
+) {}
 
-@Data
-@AllArgsConstructor
-public class PageableDto {
-    Integer page;
-    Integer size;
-    String sort;
-}

@@ -37,9 +37,9 @@ public class WarehouseServiceImpl implements WarehouseService {
     @Override
     @Transactional(readOnly = false)
     public void createProduct(NewProductInWarehouseRequest newProductInWarehouseRequest) {
-        if (productRepository.existsById(newProductInWarehouseRequest.getProductId())) {
+        if (productRepository.existsById(newProductInWarehouseRequest.productId())) {
             throw new SpecifiedProductAlreadyInWarehouseException(
-                    "Товар уже существует: id = " + newProductInWarehouseRequest.getProductId()
+                    "Товар уже существует: id = " + newProductInWarehouseRequest.productId()
             );
         }
         Product newProduct = WarehouseMapper.mapToModel(newProductInWarehouseRequest);
@@ -49,7 +49,7 @@ public class WarehouseServiceImpl implements WarehouseService {
     @Override
     @Transactional(readOnly = true)
     public BookedProductsDto checkShoppingCart(ShoppingCartDto shoppingCartDto) {
-        Map<String, Long> productsMap = shoppingCartDto.getProducts();
+        Map<String, Long> productsMap = shoppingCartDto.products();
         List<Product> products = productRepository.findAllById(productsMap.keySet());
 
         String lackString = "";
@@ -89,12 +89,12 @@ public class WarehouseServiceImpl implements WarehouseService {
     @Override
     @Transactional(readOnly = false)
     public void changeQuantity(AddProductToWarehouseRequest addProductToWarehouseRequest) {
-        Product product = productRepository.findById(addProductToWarehouseRequest.getProductId()).orElseThrow(
+        Product product = productRepository.findById(addProductToWarehouseRequest.productId()).orElseThrow(
                 () -> new NoSpecifiedProductInWarehouseException(
-                        "Товар не найден: id = " + addProductToWarehouseRequest.getProductId()
+                        "Товар не найден: id = " + addProductToWarehouseRequest.productId()
                 )
         );
-        product.setQuantity(product.getQuantity() + addProductToWarehouseRequest.getQuantity());
+        product.setQuantity(product.getQuantity() + addProductToWarehouseRequest.quantity());
     }
 
     @Override
@@ -120,11 +120,6 @@ public class WarehouseServiceImpl implements WarehouseService {
                 .map(Product::getFragile)
                 .anyMatch(Boolean.TRUE::equals);
 
-        BookedProductsDto bookedProductsDto = new BookedProductsDto();
-        bookedProductsDto.setDeliveryWeight(deliveryWeight);
-        bookedProductsDto.setDeliveryVolume(deliveryVolume);
-        bookedProductsDto.setFragile(fragile);
-
-        return bookedProductsDto;
+        return new BookedProductsDto(deliveryWeight, deliveryVolume, fragile);
     }
 }

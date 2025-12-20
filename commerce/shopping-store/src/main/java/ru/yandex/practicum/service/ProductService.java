@@ -15,7 +15,7 @@ public interface ProductService {
 
     ProductCollectionDto getCollection(ProductCategory category, PageableDto pageable);
 
-    String remove(String productId);
+    boolean remove(String productId);
 
-    String setQuantityState(String productId, QuantityState quantityState);
+    boolean setQuantityState(String productId, QuantityState quantityState);
 }

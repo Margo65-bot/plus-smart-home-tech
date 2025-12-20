@@ -1,18 +1,16 @@
 package ru.yandex.practicum.dto.warehouse;
 
 import jakarta.validation.constraints.NotNull;
-import lombok.Data;
 
 import java.math.BigDecimal;
 
-@Data
-public class BookedProductsDto {
+public record BookedProductsDto (
     @NotNull(message = "Вес доставки не должен быть нулевым")
-    private BigDecimal deliveryWeight;
+    BigDecimal deliveryWeight,
 
     @NotNull(message = "Объем доставки не должен быть нулевым")
-    private BigDecimal deliveryVolume;
+    BigDecimal deliveryVolume,
 
     @NotNull(message = "Хрупкость не должна быть нулевой")
-    private Boolean fragile;
-}
+    Boolean fragile
+    ) {}

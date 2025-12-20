@@ -32,13 +32,13 @@ public class ShoppingStoreController implements ShoppingStoreApi {
     }
 
     @Override
-    public String remove(String productId) {
+    public boolean remove(String productId) {
         log.info("Shopping Store: Запущен метод remove() productId={}", productId);
         return productService.remove(productId);
     }
 
     @Override
-    public String setQuantityState(String productId, QuantityState quantityState) {
+    public boolean setQuantityState(String productId, QuantityState quantityState) {
         log.info("Shopping Store: Запущен метод setQuantityState() productId={}, quantityState={}",
                 productId, quantityState);
         return productService.setQuantityState(productId, quantityState);

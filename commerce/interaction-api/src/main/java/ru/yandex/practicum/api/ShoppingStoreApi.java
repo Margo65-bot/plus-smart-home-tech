@@ -32,13 +32,13 @@ public interface ShoppingStoreApi {
 
     @PostMapping("/api/v1/shopping-store/removeProductFromStore")
     @ResponseStatus(HttpStatus.OK)
-    public String remove(
+    public boolean remove(
             @RequestBody @NotBlank String productId
     );
 
     @PostMapping("/api/v1/shopping-store/quantityState")
     @ResponseStatus(HttpStatus.OK)
-    public String setQuantityState(
+    public boolean setQuantityState(
             @RequestParam(required = true) String productId,
             @RequestParam(required = true) QuantityState quantityState
     );
@@ -53,9 +53,9 @@ public interface ShoppingStoreApi {
     @ResponseStatus(HttpStatus.OK)
     public ProductCollectionDto getCollection(
             @RequestParam(required = true) ProductCategory category,
-            @RequestParam(required = false, defaultValue = "0") @PositiveOrZero Integer page,
-            @RequestParam(required = false, defaultValue = "10") @Positive Integer size,
-            @RequestParam(required = false, defaultValue = "productName,ASC") String sort
+            @RequestParam(defaultValue = "0") @PositiveOrZero Integer page,
+            @RequestParam(defaultValue = "10") @Positive Integer size,
+            @RequestParam(defaultValue = "productName,ASC") String sort
     );
 
 }

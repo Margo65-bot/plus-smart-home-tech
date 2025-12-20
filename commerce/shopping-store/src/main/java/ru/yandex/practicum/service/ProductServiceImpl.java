@@ -80,41 +80,44 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = true)
     public ProductCollectionDto getCollection(ProductCategory category, PageableDto pageable) {
-        List<SortDto> sortList = parseSortString(pageable.getSort());
+        List<SortDto> sortList = parseSortString(pageable.sort());
         Sort sort = sortList.stream()
-                .map(s -> Sort.by(Sort.Direction.valueOf(s.getDirection()), s.getProperty()))
+                .map(s -> Sort.by(Sort.Direction.valueOf(s.direction()), s.property()))
                 .reduce(Sort.unsorted(), Sort::and);
-        Pageable pageableForReq = PageRequest.of(pageable.getPage(), pageable.getSize(), sort);
+        Pageable pageableForReq = PageRequest.of(pageable.page(), pageable.size(), sort);
 
         Page<Product> products = productRepository.findAllByProductCategory(category, pageableForReq);
         List<ProductDto> productsDto = products.stream()
                 .map(ProductMapper::mapToDto)
                 .toList();
 
-        ProductCollectionDto result = new ProductCollectionDto();
-        result.setContent(productsDto);
-        result.setSort(sortList);
-        return result;
+        return new ProductCollectionDto(
+                productsDto,
+                sortList
+        );
     }
 
     @Override
     @Transactional(readOnly = false)
-    public String remove(String productId) {
+    public boolean remove(String productId) {
         String id = productId.replaceAll("\"", "");
         Product product = getProductOrThrow(id);
         if (product.getProductState() == ProductState.DEACTIVATE) {
-            return "false";
+            return false;
         }
         product.setProductState(ProductState.DEACTIVATE);
-        return "true";
+        return true;
     }
 
     @Override
     @Transactional(readOnly = false)
-    public String setQuantityState(String productId, QuantityState quantityState) {
+    public boolean setQuantityState(String productId, QuantityState quantityState) {
         Product product = getProductOrThrow(productId);
+        if (product.getQuantityState() == quantityState) {
+            return false;
+        }
         product.setQuantityState(quantityState);
-        return "true";
+        return true;
     }
 
     private List<SortDto> parseSortString(String sortString) {
@@ -122,9 +125,10 @@ public class ProductServiceImpl implements ProductService {
         if (sortString == null || sortString.isEmpty()) return sort;
         String[] parts = sortString.split(",");
         for (int i = 0; i < parts.length - 1; i += 2) {
-            SortDto dto = new SortDto();
-            dto.setProperty(parts[i].trim());
-            dto.setDirection(parts[i + 1].trim());
+            SortDto dto = new SortDto(
+                    parts[i].trim(),
+                    parts[i + 1].trim()
+            );
             sort.add(dto);
         }
         return sort;
