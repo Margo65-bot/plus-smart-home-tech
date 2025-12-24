@@ -1,0 +1,6 @@
+package ru.yandex.practicum.dto.shopping_store;
+
+public record SortDto(
+        String direction,
+        String property
+) {}
