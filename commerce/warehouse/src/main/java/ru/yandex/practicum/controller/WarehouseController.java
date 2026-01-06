@@ -8,9 +8,13 @@ import ru.yandex.practicum.api.WarehouseApi;
 import ru.yandex.practicum.dto.shopping_cart.ShoppingCartDto;
 import ru.yandex.practicum.dto.warehouse.AddProductToWarehouseRequest;
 import ru.yandex.practicum.dto.warehouse.AddressDto;
+import ru.yandex.practicum.dto.warehouse.AssemblyProductsForOrderRequest;
 import ru.yandex.practicum.dto.warehouse.BookedProductsDto;
 import ru.yandex.practicum.dto.warehouse.NewProductInWarehouseRequest;
+import ru.yandex.practicum.dto.warehouse.ShippedToDeliveryRequest;
 import ru.yandex.practicum.service.WarehouseService;
+
+import java.util.Map;
 
 @Slf4j
 @Validated
@@ -44,5 +48,26 @@ public class WarehouseController implements WarehouseApi {
     public AddressDto getAddress() {
         log.info("Warehouse: Запущен метод getAddress()");
         return warehouseService.getAddress();
+    }
+
+    @Override
+    public void sendToDelivery(ShippedToDeliveryRequest shippedToDeliveryRequest) {
+        log.info("Warehouse: Запущен метод sendToDelivery() shippedToDeliveryRequest={}",
+                shippedToDeliveryRequest);
+        warehouseService.sendToDelivery(shippedToDeliveryRequest);
+    }
+
+    @Override
+    public void returnProducts(Map<String, Long> products) {
+        log.info("Warehouse: Запущен метод returnProducts() products={}",
+                products);
+        warehouseService.returnProducts(products);
+    }
+
+    @Override
+    public BookedProductsDto assemblyProductsForOrder(AssemblyProductsForOrderRequest assemblyProductsForOrderRequest) {
+        log.info("Warehouse: Запущен метод assemblyProductsForOrder() assemblyProductsForOrderRequest={}",
+                assemblyProductsForOrderRequest);
+        return warehouseService.assemblyProductsForOrder(assemblyProductsForOrderRequest);
     }
 }

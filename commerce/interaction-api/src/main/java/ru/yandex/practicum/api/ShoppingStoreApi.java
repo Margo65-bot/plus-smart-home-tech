@@ -20,38 +20,38 @@ import ru.yandex.practicum.dto.shopping_store.QuantityState;
 public interface ShoppingStoreApi {
     @PutMapping("/api/v1/shopping-store")
     @ResponseStatus(HttpStatus.OK)
-    public ProductDto create(
+    ProductDto create(
             @RequestBody @Valid ProductDto productDto
     );
 
     @PostMapping("/api/v1/shopping-store")
     @ResponseStatus(HttpStatus.OK)
-    public ProductDto update(
+    ProductDto update(
             @RequestBody @Valid ProductDto productDto
     );
 
     @PostMapping("/api/v1/shopping-store/removeProductFromStore")
     @ResponseStatus(HttpStatus.OK)
-    public boolean remove(
+    boolean remove(
             @RequestBody @NotBlank String productId
     );
 
     @PostMapping("/api/v1/shopping-store/quantityState")
     @ResponseStatus(HttpStatus.OK)
-    public boolean setQuantityState(
+    boolean setQuantityState(
             @RequestParam(required = true) String productId,
             @RequestParam(required = true) QuantityState quantityState
     );
 
     @GetMapping("/api/v1/shopping-store/{productId}")
     @ResponseStatus(HttpStatus.OK)
-    public ProductDto getById(
+    ProductDto getById(
             @PathVariable String productId
     );
 
     @GetMapping("/api/v1/shopping-store")
     @ResponseStatus(HttpStatus.OK)
-    public ProductCollectionDto getCollection(
+    ProductCollectionDto getCollection(
             @RequestParam(required = true) ProductCategory category,
             @RequestParam(defaultValue = "0") @PositiveOrZero Integer page,
             @RequestParam(defaultValue = "10") @Positive Integer size,

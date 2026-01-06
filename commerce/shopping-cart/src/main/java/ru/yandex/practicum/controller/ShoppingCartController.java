@@ -44,9 +44,9 @@ public class ShoppingCartController implements ShoppingCartApi {
     }
 
     @Override
-    public String deactivate(String username) {
+    public void deactivate(String username) {
         log.info("Shopping Cart: Метод deactivate() вызван для пользователя '{}'", maskUsername(username));
-        return shoppingCartService.deactivate(username);
+        shoppingCartService.deactivate(username);
     }
 
     @Override

@@ -16,7 +16,6 @@ import java.math.BigDecimal;
 @Entity
 @Table(name = "products")
 public class Product {
-
     @Id
     @Column(name = "product_id", nullable = false, length = 50)
     private String productId;
@@ -38,5 +37,4 @@ public class Product {
 
     @Column(name = "quantity", nullable = false)
     private Long quantity;
-
 }

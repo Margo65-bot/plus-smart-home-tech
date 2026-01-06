@@ -6,13 +6,17 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.dto.shopping_cart.ShoppingCartDto;
 import ru.yandex.practicum.dto.warehouse.AddProductToWarehouseRequest;
 import ru.yandex.practicum.dto.warehouse.AddressDto;
+import ru.yandex.practicum.dto.warehouse.AssemblyProductsForOrderRequest;
 import ru.yandex.practicum.dto.warehouse.BookedProductsDto;
 import ru.yandex.practicum.dto.warehouse.NewProductInWarehouseRequest;
+import ru.yandex.practicum.dto.warehouse.ShippedToDeliveryRequest;
+import ru.yandex.practicum.entity.OrderBooking;
 import ru.yandex.practicum.entity.Product;
 import ru.yandex.practicum.entity.WarehouseMapper;
 import ru.yandex.practicum.exception.warehouse.NoSpecifiedProductInWarehouseException;
 import ru.yandex.practicum.exception.warehouse.ProductInShoppingCartLowQuantityInWarehouse;
 import ru.yandex.practicum.exception.warehouse.SpecifiedProductAlreadyInWarehouseException;
+import ru.yandex.practicum.repository.OrderBookingRepository;
 import ru.yandex.practicum.repository.ProductRepository;
 
 import java.math.BigDecimal;
@@ -21,6 +25,7 @@ import java.security.SecureRandom;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -29,6 +34,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class WarehouseServiceImpl implements WarehouseService {
     private final ProductRepository productRepository;
+    private final OrderBookingRepository orderBookingRepository;
 
     private static final String[] ADDRESSES = new String[]{"ADDRESS_1", "ADDRESS_2"};
 
@@ -42,14 +48,103 @@ public class WarehouseServiceImpl implements WarehouseService {
                     "Товар уже существует: id = " + newProductInWarehouseRequest.productId()
             );
         }
-        Product newProduct = WarehouseMapper.mapToModel(newProductInWarehouseRequest);
+        Product newProduct = WarehouseMapper.mapToProductModel(newProductInWarehouseRequest);
         productRepository.save(newProduct);
     }
 
     @Override
     @Transactional(readOnly = true)
     public BookedProductsDto checkShoppingCart(ShoppingCartDto shoppingCartDto) {
-        Map<String, Long> productsMap = shoppingCartDto.products();
+        return checkProducts(shoppingCartDto.products());
+    }
+
+    @Override
+    @Transactional(readOnly = false)
+    public void changeQuantity(AddProductToWarehouseRequest addProductToWarehouseRequest) {
+        Product product = productRepository.findById(addProductToWarehouseRequest.productId()).orElseThrow(
+                () -> new NoSpecifiedProductInWarehouseException(
+                        "Товар не найден: id = " + addProductToWarehouseRequest.productId()
+                )
+        );
+        product.setQuantity(product.getQuantity() + addProductToWarehouseRequest.quantity());
+    }
+
+    @Override
+    public AddressDto getAddress() {
+        return new AddressDto(CURRENT_ADDRESS, CURRENT_ADDRESS, CURRENT_ADDRESS, CURRENT_ADDRESS, CURRENT_ADDRESS);
+    }
+
+    @Override
+    @Transactional(readOnly = false)
+    public void sendToDelivery(ShippedToDeliveryRequest shippedToDeliveryRequest) {
+        OrderBooking orderBooking = orderBookingRepository.findByOrderId(shippedToDeliveryRequest.orderId()).orElseThrow(
+                () -> new NoSpecifiedProductInWarehouseException(
+                        "Не найдено бронирование для заказа: id = " + shippedToDeliveryRequest.orderId()
+                )
+        );
+        orderBooking.setDeliveryId(shippedToDeliveryRequest.deliveryId());
+    }
+
+    @Override
+    @Transactional(readOnly = false)
+    public void returnProducts(Map<String, Long> products) {
+        List<Product> productList = productRepository.findAllById(products.keySet());
+        for (Product product : productList) {
+            product.setQuantity(
+                    product.getQuantity() + products.get(product.getProductId())
+            );
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = false)
+    public BookedProductsDto assemblyProductsForOrder(AssemblyProductsForOrderRequest assemblyProductsForOrderRequest) {
+        Optional<OrderBooking> optionalBooking = orderBookingRepository.findByOrderId(assemblyProductsForOrderRequest.orderId());
+        if (optionalBooking.isPresent()) {
+            return WarehouseMapper.mapToBookedProductsDto(optionalBooking.get());
+        }
+
+        Map<String, Long> products = assemblyProductsForOrderRequest.products();
+        BookedProductsDto bookedProductsDto = checkProducts(products);
+
+        OrderBooking orderBooking = new OrderBooking();
+        orderBooking.setOrderId(assemblyProductsForOrderRequest.orderId());
+        orderBooking.setDeliveryWeight(bookedProductsDto.deliveryWeight());
+        orderBooking.setDeliveryVolume(bookedProductsDto.deliveryVolume());
+        orderBooking.setFragile(bookedProductsDto.fragile());
+        orderBooking.setProducts(products);
+        orderBookingRepository.save(orderBooking);
+
+        List<Product> productList = productRepository.findAllById(products.keySet());
+        for (Product product : productList) {
+            product.setQuantity(product.getQuantity() - products.get(product.getProductId()));
+        }
+        productRepository.saveAll(productList);
+        return bookedProductsDto;
+    }
+
+    private BookedProductsDto calculateDeliveryDetails(List<Product> products, Map<String, Long> productsMap) {
+        BigDecimal deliveryWeight = products.stream()
+                .map(Product::getWeight)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.UP);
+
+        BigDecimal deliveryVolume = products.stream()
+                .map(p -> BigDecimal.valueOf(productsMap.get(p.getProductId()))
+                        .multiply(p.getWidth())
+                        .multiply(p.getHeight())
+                        .multiply(p.getDepth()))
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.UP);
+
+        Boolean fragile = products.stream()
+                .map(Product::getFragile)
+                .anyMatch(Boolean.TRUE::equals);
+
+        return new BookedProductsDto(deliveryWeight, deliveryVolume, fragile);
+    }
+
+    private BookedProductsDto checkProducts(Map<String, Long> productsMap) {
         List<Product> products = productRepository.findAllById(productsMap.keySet());
 
         String lackString = "";
@@ -84,42 +179,5 @@ public class WarehouseServiceImpl implements WarehouseService {
         }
 
         return calculateDeliveryDetails(products, productsMap);
-    }
-
-    @Override
-    @Transactional(readOnly = false)
-    public void changeQuantity(AddProductToWarehouseRequest addProductToWarehouseRequest) {
-        Product product = productRepository.findById(addProductToWarehouseRequest.productId()).orElseThrow(
-                () -> new NoSpecifiedProductInWarehouseException(
-                        "Товар не найден: id = " + addProductToWarehouseRequest.productId()
-                )
-        );
-        product.setQuantity(product.getQuantity() + addProductToWarehouseRequest.quantity());
-    }
-
-    @Override
-    public AddressDto getAddress() {
-        return new AddressDto(CURRENT_ADDRESS, CURRENT_ADDRESS, CURRENT_ADDRESS, CURRENT_ADDRESS, CURRENT_ADDRESS);
-    }
-
-    private BookedProductsDto calculateDeliveryDetails(List<Product> products, Map<String, Long> productsMap) {
-        BigDecimal deliveryWeight = products.stream()
-                .map(Product::getWeight)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .setScale(2, RoundingMode.UP);
-
-        BigDecimal deliveryVolume = products.stream()
-                .map(p -> BigDecimal.valueOf(productsMap.get(p.getProductId()))
-                        .multiply(p.getWidth())
-                        .multiply(p.getHeight())
-                        .multiply(p.getDepth()))
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .setScale(2, RoundingMode.UP);
-
-        Boolean fragile = products.stream()
-                .map(Product::getFragile)
-                .anyMatch(Boolean.TRUE::equals);
-
-        return new BookedProductsDto(deliveryWeight, deliveryVolume, fragile);
     }
 }
