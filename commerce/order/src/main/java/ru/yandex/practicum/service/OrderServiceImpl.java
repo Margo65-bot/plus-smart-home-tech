@@ -20,7 +20,6 @@ import ru.yandex.practicum.feign.WarehouseClient;
 import ru.yandex.practicum.repository.OrderRepository;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -39,57 +38,60 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    @Transactional(readOnly = false)
+    @Transactional
     public OrderDto create(String username, CreateNewOrderRequest createNewOrderRequest) {
-        Optional<Order> optionalOrder = orderRepository.findByShoppingCartId(createNewOrderRequest.shoppingCart().shoppingCartId());
-        if (optionalOrder.isPresent()) {
-            return OrderMapper.mapToDto(optionalOrder.get());
-        }
 
-        Order order = new Order();
-        order.setUsername(username);
-        order.setShoppingCartId(createNewOrderRequest.shoppingCart().shoppingCartId());
-        order.setProducts(createNewOrderRequest.shoppingCart().products());
-        order.setState(OrderState.NEW);
+        return orderRepository
+                .findByShoppingCartId(createNewOrderRequest.shoppingCart().shoppingCartId())
+                .map(OrderMapper::mapToDto)
+                .orElseGet(() -> {
 
-        orderRepository.save(order);
+                    Order order = new Order();
+                    order.setUsername(username);
+                    order.setShoppingCartId(createNewOrderRequest.shoppingCart().shoppingCartId());
+                    order.setProducts(createNewOrderRequest.shoppingCart().products());
+                    order.setState(OrderState.NEW);
 
-        BookedProductsDto bookedProductsDto = warehouseClient.assemblyProductsForOrder(
-                new AssemblyProductsForOrderRequest(
-                        order.getId(),
-                        order.getProducts()
-                )
-        );
+                    orderRepository.save(order);
 
-        order.setDeliveryWeight(bookedProductsDto.deliveryWeight());
-        order.setDeliveryVolume(bookedProductsDto.deliveryVolume());
-        order.setFragile(bookedProductsDto.fragile());
+                    BookedProductsDto bookedProductsDto =
+                            warehouseClient.assemblyProductsForOrder(
+                                    new AssemblyProductsForOrderRequest(
+                                            order.getId(),
+                                            order.getProducts()
+                                    )
+                            );
 
-        DeliveryDto deliveryDto = deliveryClient.create(
-                new DeliveryDto(
-                        null,
-                        warehouseClient.getAddress(),
-                        createNewOrderRequest.deliveryAddress(),
-                        order.getId(),
-                        null
-                )
-        );
+                    order.setDeliveryWeight(bookedProductsDto.deliveryWeight());
+                    order.setDeliveryVolume(bookedProductsDto.deliveryVolume());
+                    order.setFragile(bookedProductsDto.fragile());
 
-        order.setDeliveryId(deliveryDto.deliveryId());
+                    DeliveryDto deliveryDto = deliveryClient.create(
+                            new DeliveryDto(
+                                    null,
+                                    warehouseClient.getAddress(),
+                                    createNewOrderRequest.deliveryAddress(),
+                                    order.getId(),
+                                    null
+                            )
+                    );
 
-        PaymentDto paymentDto = paymentClient.makePayment(
-                OrderMapper.mapToDto(order)
-        );
+                    order.setDeliveryId(deliveryDto.deliveryId());
 
-        order.setPaymentId(paymentDto.paymentId());
-        order.setTotalPrice(paymentDto.totalPayment());
-        order.setDeliveryPrice(paymentDto.deliveryTotal());
-        order.setProductPrice(
-                paymentClient.calculateProductCost(
-                        OrderMapper.mapToDto(order)
-                )
-        );
-        return OrderMapper.mapToDto(order);
+                    PaymentDto paymentDto =
+                            paymentClient.makePayment(OrderMapper.mapToDto(order));
+
+                    order.setPaymentId(paymentDto.paymentId());
+                    order.setTotalPrice(paymentDto.totalPayment());
+                    order.setDeliveryPrice(paymentDto.deliveryTotal());
+                    order.setProductPrice(
+                            paymentClient.calculateProductCost(
+                                    OrderMapper.mapToDto(order)
+                            )
+                    );
+
+                    return OrderMapper.mapToDto(order);
+                });
     }
 
     @Override

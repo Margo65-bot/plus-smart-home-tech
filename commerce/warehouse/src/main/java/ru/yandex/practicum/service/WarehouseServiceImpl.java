@@ -25,7 +25,6 @@ import java.security.SecureRandom;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -97,30 +96,40 @@ public class WarehouseServiceImpl implements WarehouseService {
     }
 
     @Override
-    @Transactional(readOnly = false)
-    public BookedProductsDto assemblyProductsForOrder(AssemblyProductsForOrderRequest assemblyProductsForOrderRequest) {
-        Optional<OrderBooking> optionalBooking = orderBookingRepository.findByOrderId(assemblyProductsForOrderRequest.orderId());
-        if (optionalBooking.isPresent()) {
-            return WarehouseMapper.mapToBookedProductsDto(optionalBooking.get());
-        }
+    @Transactional
+    public BookedProductsDto assemblyProductsForOrder(
+            AssemblyProductsForOrderRequest assemblyProductsForOrderRequest
+    ) {
+        return orderBookingRepository
+                .findByOrderId(assemblyProductsForOrderRequest.orderId())
+                .map(WarehouseMapper::mapToBookedProductsDto)
+                .orElseGet(() -> {
 
-        Map<String, Long> products = assemblyProductsForOrderRequest.products();
-        BookedProductsDto bookedProductsDto = checkProducts(products);
+                    Map<String, Long> products = assemblyProductsForOrderRequest.products();
+                    BookedProductsDto bookedProductsDto = checkProducts(products);
 
-        OrderBooking orderBooking = new OrderBooking();
-        orderBooking.setOrderId(assemblyProductsForOrderRequest.orderId());
-        orderBooking.setDeliveryWeight(bookedProductsDto.deliveryWeight());
-        orderBooking.setDeliveryVolume(bookedProductsDto.deliveryVolume());
-        orderBooking.setFragile(bookedProductsDto.fragile());
-        orderBooking.setProducts(products);
-        orderBookingRepository.save(orderBooking);
+                    OrderBooking orderBooking = new OrderBooking();
+                    orderBooking.setOrderId(assemblyProductsForOrderRequest.orderId());
+                    orderBooking.setDeliveryWeight(bookedProductsDto.deliveryWeight());
+                    orderBooking.setDeliveryVolume(bookedProductsDto.deliveryVolume());
+                    orderBooking.setFragile(bookedProductsDto.fragile());
+                    orderBooking.setProducts(products);
 
-        List<Product> productList = productRepository.findAllById(products.keySet());
-        for (Product product : productList) {
-            product.setQuantity(product.getQuantity() - products.get(product.getProductId()));
-        }
-        productRepository.saveAll(productList);
-        return bookedProductsDto;
+                    orderBookingRepository.save(orderBooking);
+
+                    List<Product> productList =
+                            productRepository.findAllById(products.keySet());
+
+                    for (Product product : productList) {
+                        product.setQuantity(
+                                product.getQuantity() - products.get(product.getProductId())
+                        );
+                    }
+
+                    productRepository.saveAll(productList);
+
+                    return bookedProductsDto;
+                });
     }
 
     private BookedProductsDto calculateDeliveryDetails(List<Product> products, Map<String, Long> productsMap) {
@@ -147,32 +156,17 @@ public class WarehouseServiceImpl implements WarehouseService {
     private BookedProductsDto checkProducts(Map<String, Long> productsMap) {
         List<Product> products = productRepository.findAllById(productsMap.keySet());
 
-        String lackString = "";
-        String notEnoughString = "";
-
         boolean isLackOfProducts = products.size() < productsMap.size();
         boolean isNotEnoughProducts = products.stream()
                 .anyMatch(p -> p.getQuantity() < productsMap.get(p.getProductId()));
 
-        if (isLackOfProducts) {
-            Set<String> lackProductIds = new HashSet<>(productsMap.keySet());
+        String lackString = isLackOfProducts
+                ? buildLackProductsMessage(products, productsMap)
+                : "";
 
-            for (Product wp : products) {
-                lackProductIds.remove(wp.getProductId());
-            }
-
-            lackString = lackProductIds.stream()
-                    .map(id -> id + "; ")
-                    .collect(Collectors.joining("", "Отсутствуют товары на складе с идентификаторами: ", ""))
-                    .replaceAll("; $", "");
-        }
-
-        if (isNotEnoughProducts) {
-            notEnoughString = products.stream()
-                    .filter(p -> p.getQuantity() < productsMap.get(p.getProductId()))
-                    .map(p -> p.getProductId() + ": " + productsMap.get(p.getProductId()) + " в корзине, " + p.getQuantity() + " в наличии")
-                    .collect(Collectors.joining("; ", "Недостаточно товаров на складе - ", ""));
-        }
+        String notEnoughString = isNotEnoughProducts
+                ? buildNotEnoughProductsMessage(products, productsMap)
+                : "";
 
         if (isLackOfProducts || isNotEnoughProducts) {
             throw new ProductInShoppingCartLowQuantityInWarehouse(lackString + notEnoughString);
@@ -180,4 +174,38 @@ public class WarehouseServiceImpl implements WarehouseService {
 
         return calculateDeliveryDetails(products, productsMap);
     }
+
+    private String buildLackProductsMessage(
+            List<Product> products,
+            Map<String, Long> productsMap
+    ) {
+        Set<String> lackProductIds = new HashSet<>(productsMap.keySet());
+        products.forEach(p -> lackProductIds.remove(p.getProductId()));
+
+        return lackProductIds.stream()
+                .collect(Collectors.joining(
+                        "; ",
+                        "Отсутствуют товары на складе с идентификаторами: ",
+                        ""
+                ));
+    }
+
+    private String buildNotEnoughProductsMessage(
+            List<Product> products,
+            Map<String, Long> productsMap
+    ) {
+        return products.stream()
+                .filter(p -> p.getQuantity() < productsMap.get(p.getProductId()))
+                .map(p -> p.getProductId() + ": "
+                        + productsMap.get(p.getProductId())
+                        + " в корзине, "
+                        + p.getQuantity()
+                        + " в наличии")
+                .collect(Collectors.joining(
+                        "; ",
+                        "Недостаточно товаров на складе - ",
+                        ""
+                ));
+    }
+
 }

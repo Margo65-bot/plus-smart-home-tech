@@ -15,7 +15,6 @@ import ru.yandex.practicum.feign.WarehouseClient;
 import ru.yandex.practicum.repository.DeliveryRepository;
 
 import java.math.BigDecimal;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -27,13 +26,14 @@ public class DeliveryServiceImpl implements DeliveryService {
     @Override
     @Transactional(readOnly = false)
     public DeliveryDto create(DeliveryDto deliveryDto) {
-        Optional<Delivery> optionalDelivery = deliveryRepository.findById(deliveryDto.deliveryId());
-        if (optionalDelivery.isPresent()) {
-            return DeliveryMapper.mapToDto(optionalDelivery.get());
-        }
-
-        Delivery delivery = deliveryRepository.save(DeliveryMapper.mapToModel(deliveryDto));
-        return DeliveryMapper.mapToDto(delivery);
+        return deliveryRepository.findById(deliveryDto.deliveryId())
+                .map(DeliveryMapper::mapToDto)
+                .orElseGet(() -> {
+                    Delivery saved = deliveryRepository.save(
+                            DeliveryMapper.mapToModel(deliveryDto)
+                    );
+                    return DeliveryMapper.mapToDto(saved);
+                });
     }
 
     @Override
@@ -73,36 +73,32 @@ public class DeliveryServiceImpl implements DeliveryService {
 
         BigDecimal baseRate = BigDecimal.valueOf(5);
 
-        String street = delivery.getFromAddress().street();
-        String[] parts = street.split("_");
-        int warehouseMultiplier = Integer.parseInt(parts[1]);
-
         BigDecimal cost = baseRate
-                .multiply(BigDecimal.valueOf(warehouseMultiplier))
+                .multiply(
+                        BigDecimal.valueOf(
+                                Integer.parseInt(
+                                        delivery.getFromAddress().street().split("_")[1]
+                                )
+                        )
+                )
                 .add(baseRate);
 
         if (Boolean.TRUE.equals(orderDto.fragile())) {
-            BigDecimal fragileExtra = cost.multiply(BigDecimal.valueOf(0.2));
-            cost = cost.add(fragileExtra);
+            cost = cost.add(cost.multiply(BigDecimal.valueOf(0.2)));
         }
 
         if (orderDto.deliveryWeight() != null) {
-            cost = cost.add(
-                    orderDto.deliveryWeight()
-                            .multiply(BigDecimal.valueOf(0.3))
-            );
+            cost = cost.add(orderDto.deliveryWeight().multiply(BigDecimal.valueOf(0.3)));
         }
 
         if (orderDto.deliveryVolume() != null) {
-            cost = cost.add(
-                    orderDto.deliveryVolume()
-                            .multiply(BigDecimal.valueOf(0.2))
-            );
+            cost = cost.add(orderDto.deliveryVolume().multiply(BigDecimal.valueOf(0.2)));
         }
 
-        if (delivery.getFromAddress().street() != null && delivery.getFromAddress().street().equalsIgnoreCase(delivery.getToAddress().street())) {
-            BigDecimal addressExtra = cost.multiply(BigDecimal.valueOf(0.2));
-            cost = cost.add(addressExtra);
+        if (delivery.getFromAddress().street() != null
+                && delivery.getFromAddress().street()
+                .equalsIgnoreCase(delivery.getToAddress().street())) {
+            cost = cost.add(cost.multiply(BigDecimal.valueOf(0.2)));
         }
 
         return cost;
