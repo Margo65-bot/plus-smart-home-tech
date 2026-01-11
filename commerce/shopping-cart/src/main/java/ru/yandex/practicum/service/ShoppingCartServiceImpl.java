@@ -1,11 +1,9 @@
 package ru.yandex.practicum.service;
 
 import feign.FeignException;
-import jakarta.ws.rs.ServiceUnavailableException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
 import ru.yandex.practicum.dto.shopping_cart.ChangeProductQuantityRequest;
 import ru.yandex.practicum.dto.shopping_cart.ShoppingCartDto;
 import ru.yandex.practicum.entity.ShoppingCart;
@@ -14,6 +12,7 @@ import ru.yandex.practicum.exception.shopping_cart.NoActiveShoppingCartException
 import ru.yandex.practicum.exception.shopping_cart.NoProductsInShoppingCartException;
 import ru.yandex.practicum.exception.shopping_cart.NotAuthorizedUserException;
 import ru.yandex.practicum.exception.warehouse.ProductInShoppingCartLowQuantityInWarehouse;
+import ru.yandex.practicum.exception.warehouse.ServiceUnavailableException;
 import ru.yandex.practicum.feign.WarehouseClient;
 import ru.yandex.practicum.repository.ShoppingCartRepository;
 
@@ -27,7 +26,6 @@ import java.util.stream.Collectors;
 public class ShoppingCartServiceImpl implements ShoppingCartService {
     private final ShoppingCartRepository shoppingCartRepository;
     private final WarehouseClient warehouseClient;
-    private final TransactionTemplate transactionTemplate;
 
     @Override
     @Transactional(readOnly = false)
@@ -115,10 +113,8 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
 
     @Override
     @Transactional(readOnly = false)
-    public String deactivate(String username) {
-        if (username == null || username.isBlank()) {
-            throw new NotAuthorizedUserException("Имя пользователя не должно быть пустым");
-        }
+    public void deactivate(String username) {
+        checkUsername(username);
 
         ShoppingCart shoppingCart = shoppingCartRepository.findByUsernameAndIsActive(username, true)
                         .orElseThrow(() -> new NoActiveShoppingCartException(
@@ -126,7 +122,6 @@ public class ShoppingCartServiceImpl implements ShoppingCartService {
                         ));
 
         shoppingCart.setIsActive(false);
-        return "OK";
     }
 
     @Override

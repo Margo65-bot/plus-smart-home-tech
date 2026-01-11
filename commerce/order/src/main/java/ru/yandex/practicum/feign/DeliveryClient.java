@@ -1,0 +1,24 @@
+package ru.yandex.practicum.feign;
+
+import feign.FeignException;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import ru.yandex.practicum.dto.delivery.DeliveryDto;
+import ru.yandex.practicum.dto.order.OrderDto;
+
+import java.math.BigDecimal;
+
+@FeignClient(name = "delivery")
+public interface DeliveryClient {
+    @PostMapping("/api/v1/delivery/cost")
+    BigDecimal calculateCost(
+            @RequestBody OrderDto orderDto
+    ) throws FeignException;
+
+    @PutMapping("/api/v1/delivery")
+    DeliveryDto create(
+            @RequestBody DeliveryDto deliveryDto
+    ) throws FeignException;
+}

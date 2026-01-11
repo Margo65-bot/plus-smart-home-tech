@@ -23,11 +23,10 @@ import java.math.BigDecimal;
 @Entity
 @Table(name = "products")
 public class Product {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false, length = 50)
-    private String productId;;
+    private String productId;
 
     @Column(name = "name", nullable = false, length = 50)
     private String productName;
@@ -52,5 +51,4 @@ public class Product {
 
     @Column(name = "price", nullable = false)
     private BigDecimal price;
-
 }

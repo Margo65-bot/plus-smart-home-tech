@@ -33,6 +33,7 @@ public class ShoppingStoreController implements ShoppingStoreApi {
 
     @Override
     public boolean remove(String productId) {
+        productId = productId.replaceAll("\"", "");
         log.info("Shopping Store: Запущен метод remove() productId={}", productId);
         return productService.remove(productId);
     }

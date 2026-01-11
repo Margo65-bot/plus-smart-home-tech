@@ -1,0 +1,32 @@
+logging:
+  level:
+    io.github.resilience4j.circuitbreaker: INFO
+    ru.yandex.practicum.client: DEBUG
+    ru.yandex.practicum.logging: DEBUG
+
+management:
+  endpoints.web.exposure.include: health,info,metrics
+  endpoint.health.show-details: always
+  metrics.export.prometheus.enabled: true
+  info.env.enabled: true
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/commerce?currentSchema=delivery
+    username: commerce
+    password: 12345
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+  sql:
+    init:
+      mode: always
+
+server:
+  port: 0
+  shutdown: graceful

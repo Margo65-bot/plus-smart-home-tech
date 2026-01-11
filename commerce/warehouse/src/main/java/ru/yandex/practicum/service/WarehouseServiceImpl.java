@@ -6,13 +6,17 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.dto.shopping_cart.ShoppingCartDto;
 import ru.yandex.practicum.dto.warehouse.AddProductToWarehouseRequest;
 import ru.yandex.practicum.dto.warehouse.AddressDto;
+import ru.yandex.practicum.dto.warehouse.AssemblyProductsForOrderRequest;
 import ru.yandex.practicum.dto.warehouse.BookedProductsDto;
 import ru.yandex.practicum.dto.warehouse.NewProductInWarehouseRequest;
+import ru.yandex.practicum.dto.warehouse.ShippedToDeliveryRequest;
+import ru.yandex.practicum.entity.OrderBooking;
 import ru.yandex.practicum.entity.Product;
 import ru.yandex.practicum.entity.WarehouseMapper;
 import ru.yandex.practicum.exception.warehouse.NoSpecifiedProductInWarehouseException;
 import ru.yandex.practicum.exception.warehouse.ProductInShoppingCartLowQuantityInWarehouse;
 import ru.yandex.practicum.exception.warehouse.SpecifiedProductAlreadyInWarehouseException;
+import ru.yandex.practicum.repository.OrderBookingRepository;
 import ru.yandex.practicum.repository.ProductRepository;
 
 import java.math.BigDecimal;
@@ -29,6 +33,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class WarehouseServiceImpl implements WarehouseService {
     private final ProductRepository productRepository;
+    private final OrderBookingRepository orderBookingRepository;
 
     private static final String[] ADDRESSES = new String[]{"ADDRESS_1", "ADDRESS_2"};
 
@@ -42,48 +47,14 @@ public class WarehouseServiceImpl implements WarehouseService {
                     "Товар уже существует: id = " + newProductInWarehouseRequest.productId()
             );
         }
-        Product newProduct = WarehouseMapper.mapToModel(newProductInWarehouseRequest);
+        Product newProduct = WarehouseMapper.mapToProductModel(newProductInWarehouseRequest);
         productRepository.save(newProduct);
     }
 
     @Override
     @Transactional(readOnly = true)
     public BookedProductsDto checkShoppingCart(ShoppingCartDto shoppingCartDto) {
-        Map<String, Long> productsMap = shoppingCartDto.products();
-        List<Product> products = productRepository.findAllById(productsMap.keySet());
-
-        String lackString = "";
-        String notEnoughString = "";
-
-        boolean isLackOfProducts = products.size() < productsMap.size();
-        boolean isNotEnoughProducts = products.stream()
-                .anyMatch(p -> p.getQuantity() < productsMap.get(p.getProductId()));
-
-        if (isLackOfProducts) {
-            Set<String> lackProductIds = new HashSet<>(productsMap.keySet());
-
-            for (Product wp : products) {
-                lackProductIds.remove(wp.getProductId());
-            }
-
-            lackString = lackProductIds.stream()
-                    .map(id -> id + "; ")
-                    .collect(Collectors.joining("", "Отсутствуют товары на складе с идентификаторами: ", ""))
-                    .replaceAll("; $", "");
-        }
-
-        if (isNotEnoughProducts) {
-            notEnoughString = products.stream()
-                    .filter(p -> p.getQuantity() < productsMap.get(p.getProductId()))
-                    .map(p -> p.getProductId() + ": " + productsMap.get(p.getProductId()) + " в корзине, " + p.getQuantity() + " в наличии")
-                    .collect(Collectors.joining("; ", "Недостаточно товаров на складе - ", ""));
-        }
-
-        if (isLackOfProducts || isNotEnoughProducts) {
-            throw new ProductInShoppingCartLowQuantityInWarehouse(lackString + notEnoughString);
-        }
-
-        return calculateDeliveryDetails(products, productsMap);
+        return checkProducts(shoppingCartDto.products());
     }
 
     @Override
@@ -100,6 +71,65 @@ public class WarehouseServiceImpl implements WarehouseService {
     @Override
     public AddressDto getAddress() {
         return new AddressDto(CURRENT_ADDRESS, CURRENT_ADDRESS, CURRENT_ADDRESS, CURRENT_ADDRESS, CURRENT_ADDRESS);
+    }
+
+    @Override
+    @Transactional(readOnly = false)
+    public void sendToDelivery(ShippedToDeliveryRequest shippedToDeliveryRequest) {
+        OrderBooking orderBooking = orderBookingRepository.findByOrderId(shippedToDeliveryRequest.orderId()).orElseThrow(
+                () -> new NoSpecifiedProductInWarehouseException(
+                        "Не найдено бронирование для заказа: id = " + shippedToDeliveryRequest.orderId()
+                )
+        );
+        orderBooking.setDeliveryId(shippedToDeliveryRequest.deliveryId());
+    }
+
+    @Override
+    @Transactional(readOnly = false)
+    public void returnProducts(Map<String, Long> products) {
+        List<Product> productList = productRepository.findAllById(products.keySet());
+        for (Product product : productList) {
+            product.setQuantity(
+                    product.getQuantity() + products.get(product.getProductId())
+            );
+        }
+    }
+
+    @Override
+    @Transactional
+    public BookedProductsDto assemblyProductsForOrder(
+            AssemblyProductsForOrderRequest assemblyProductsForOrderRequest
+    ) {
+        return orderBookingRepository
+                .findByOrderId(assemblyProductsForOrderRequest.orderId())
+                .map(WarehouseMapper::mapToBookedProductsDto)
+                .orElseGet(() -> {
+
+                    Map<String, Long> products = assemblyProductsForOrderRequest.products();
+                    BookedProductsDto bookedProductsDto = checkProducts(products);
+
+                    OrderBooking orderBooking = new OrderBooking();
+                    orderBooking.setOrderId(assemblyProductsForOrderRequest.orderId());
+                    orderBooking.setDeliveryWeight(bookedProductsDto.deliveryWeight());
+                    orderBooking.setDeliveryVolume(bookedProductsDto.deliveryVolume());
+                    orderBooking.setFragile(bookedProductsDto.fragile());
+                    orderBooking.setProducts(products);
+
+                    orderBookingRepository.save(orderBooking);
+
+                    List<Product> productList =
+                            productRepository.findAllById(products.keySet());
+
+                    for (Product product : productList) {
+                        product.setQuantity(
+                                product.getQuantity() - products.get(product.getProductId())
+                        );
+                    }
+
+                    productRepository.saveAll(productList);
+
+                    return bookedProductsDto;
+                });
     }
 
     private BookedProductsDto calculateDeliveryDetails(List<Product> products, Map<String, Long> productsMap) {
@@ -122,4 +152,60 @@ public class WarehouseServiceImpl implements WarehouseService {
 
         return new BookedProductsDto(deliveryWeight, deliveryVolume, fragile);
     }
+
+    private BookedProductsDto checkProducts(Map<String, Long> productsMap) {
+        List<Product> products = productRepository.findAllById(productsMap.keySet());
+
+        boolean isLackOfProducts = products.size() < productsMap.size();
+        boolean isNotEnoughProducts = products.stream()
+                .anyMatch(p -> p.getQuantity() < productsMap.get(p.getProductId()));
+
+        String lackString = isLackOfProducts
+                ? buildLackProductsMessage(products, productsMap)
+                : "";
+
+        String notEnoughString = isNotEnoughProducts
+                ? buildNotEnoughProductsMessage(products, productsMap)
+                : "";
+
+        if (isLackOfProducts || isNotEnoughProducts) {
+            throw new ProductInShoppingCartLowQuantityInWarehouse(lackString + notEnoughString);
+        }
+
+        return calculateDeliveryDetails(products, productsMap);
+    }
+
+    private String buildLackProductsMessage(
+            List<Product> products,
+            Map<String, Long> productsMap
+    ) {
+        Set<String> lackProductIds = new HashSet<>(productsMap.keySet());
+        products.forEach(p -> lackProductIds.remove(p.getProductId()));
+
+        return lackProductIds.stream()
+                .collect(Collectors.joining(
+                        "; ",
+                        "Отсутствуют товары на складе с идентификаторами: ",
+                        ""
+                ));
+    }
+
+    private String buildNotEnoughProductsMessage(
+            List<Product> products,
+            Map<String, Long> productsMap
+    ) {
+        return products.stream()
+                .filter(p -> p.getQuantity() < productsMap.get(p.getProductId()))
+                .map(p -> p.getProductId() + ": "
+                        + productsMap.get(p.getProductId())
+                        + " в корзине, "
+                        + p.getQuantity()
+                        + " в наличии")
+                .collect(Collectors.joining(
+                        "; ",
+                        "Недостаточно товаров на складе - ",
+                        ""
+                ));
+    }
+
 }

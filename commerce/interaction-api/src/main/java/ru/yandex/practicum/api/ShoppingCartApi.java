@@ -42,7 +42,7 @@ public interface ShoppingCartApi {
 
     @DeleteMapping("/api/v1/shopping-cart")
     @ResponseStatus(HttpStatus.OK)
-    String deactivate(
+    void deactivate(
             @RequestParam(required = true) String username
     );
 

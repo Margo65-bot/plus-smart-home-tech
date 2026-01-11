@@ -13,7 +13,7 @@ public interface ShoppingCartService {
 
     ShoppingCartDto changeProductQuantity(String username, ChangeProductQuantityRequest changeProductQuantityRequest);
 
-    String deactivate(String username);
+    void deactivate(String username);
 
     ShoppingCartDto getByUsername(String username);
 }

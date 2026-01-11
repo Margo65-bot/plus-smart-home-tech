@@ -100,8 +100,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional(readOnly = false)
     public boolean remove(String productId) {
-        String id = productId.replaceAll("\"", "");
-        Product product = getProductOrThrow(id);
+        Product product = getProductOrThrow(productId);
         if (product.getProductState() == ProductState.DEACTIVATE) {
             return false;
         }
